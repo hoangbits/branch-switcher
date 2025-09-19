@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Build binaries
+      run: |
+        # Build for multiple platforms
+        GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o branch-switcher-linux-amd64
+        GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -o branch-switcher-linux-arm64
+        GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o branch-switcher-darwin-amd64
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o branch-switcher-darwin-arm64
+        GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o branch-switcher-windows-amd64.exe
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        release_name: Branch Switcher ${{ steps.version.outputs.VERSION }}
+        body: |
+          🌿 **Branch Switcher** - Beautiful TUI for Git branch management
+
+          ## Installation
+
+          **One-liner install:**
+          ```bash
+          curl -sSL https://raw.githubusercontent.com/hoangbits/branch-switcher/main/install.sh | bash
+          ```
+
+          **Or download binary below for your platform**
+
+          ## What's New
+          - Universal Git repository support (not just Elixir projects)
+          - Auto-detection of all Git repositories in parent directory
+          - Improved installation options
+
+          ## Features
+          - ✨ Beautiful TUI with Elm Architecture
+          - 🚀 Auto-selects all repositories
+          - 🎯 Two modes: switch to main OR create branches
+          - ⌨️ Vim-style keyboard shortcuts
+          - 🛡️ Safe operations with automatic stashing
+        draft: false
+        prerelease: false
+
+    - name: Upload Linux AMD64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./branch-switcher-linux-amd64
+        asset_name: branch-switcher-linux-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux ARM64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./branch-switcher-linux-arm64
+        asset_name: branch-switcher-linux-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS AMD64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./branch-switcher-darwin-amd64
+        asset_name: branch-switcher-darwin-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS ARM64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./branch-switcher-darwin-arm64
+        asset_name: branch-switcher-darwin-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows AMD64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./branch-switcher-windows-amd64.exe
+        asset_name: branch-switcher-windows-amd64.exe
+        asset_content_type: application/octet-stream
